@@ -10,10 +10,10 @@ RUN yum -y groupinstall "Development Tools"
 RUN yum -y install python3 python3-pip
 
 # 安装必要的 Python 库
-COPY requirements.txt /app/
+# COPY requirements.txt /app/
 RUN python3 -m pip install -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple --upgrade pip
-RUN pip3 config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
-RUN pip3 install -r /app/requirements.txt
+# RUN pip3 config set global.index-url https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+# RUN pip3 install -r /app/requirements.txt
 
 # 安装 PyInstaller
 RUN pip3 install pyinstaller
