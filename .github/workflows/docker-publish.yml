@@ -1,7 +1,7 @@
 name: Docker Build and Push
 
 on:
-  workflow_dispatch:  # 添加手动触发
+  workflow_dispatch:  # 手动触发
   push:
     branches: [ "master" ]
     tags: [ 'v*.*.*' ]
@@ -9,9 +9,9 @@ on:
     branches: [ "master" ]
 
 env:
-  REGISTRY: docker.io  # 使用Docker Hub
+  REGISTRY: docker.io
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-  IMAGE_NAMESPACE: ${{ secrets.DOCKER_HUB_USERNAME }}  # 你的Docker Hub用户名或组织名
+  REPOSITORY_NAME: buildenvironment
 
 jobs:
   build:
@@ -25,21 +25,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get Docker image tags
-        id: get-tags
-        run: |
-          # 扫描docker目录下的所有文件夹名作为tag
-          TAGS=""
-          for dir in docker/*; do
-            if [ -d "$dir" ]; then
-              tag=$(basename "$dir")
-              TAGS="${TAGS}${IMAGE_NAMESPACE}/${IMAGE_NAME}:${tag},"
-            fi
-          done
-          # 移除最后的逗号
-          TAGS=${TAGS%,}
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
 
@@ -51,13 +36,27 @@ jobs:
           username: ${{ env.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # 为每个找到的Dockerfile构建并推送镜像
       - name: Build and push Docker images
-        id: build-and-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.get-tags.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        run: |
+          # 遍历 docker 目录下的所有子目录
+          for dir in docker/*/; do
+            # 获取子目录名作为标签（去除路径前缀和尾部斜杠）
+            tag=$(basename "${dir%/}")
+            full_image_name="${{ env.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY_NAME }}:${tag}"
+            
+            echo "Building and pushing: $full_image_name"
+            echo "Using Dockerfile from: $dir/Dockerfile"
+            
+            if [ -f "${dir}Dockerfile" ]; then
+              docker buildx build \
+                --push \
+                --tag "$full_image_name" \
+                --file "${dir}Dockerfile" \
+                --cache-from "type=gha" \
+                --cache-to "type=gha,mode=max" \
+                .
+            else
+              echo "Error: Dockerfile not found in ${dir}"
+              exit 1
+            fi
+          done
