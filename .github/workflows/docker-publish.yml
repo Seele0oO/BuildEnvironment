@@ -44,6 +44,12 @@ jobs:
             tag=$(basename "${dir%/}")
             full_image_name="${{ env.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY_NAME }}:${tag}"
             
+            # 检查是否存在 Dockerfile.lock
+            if [ -f "${dir}Dockerfile.lock" ]; then
+              echo "Skipping build for ${full_image_name} due to Dockerfile.lock presence"
+              continue
+            fi
+            
             echo "Building and pushing: $full_image_name"
             echo "Using Dockerfile from: $dir/Dockerfile"
             
