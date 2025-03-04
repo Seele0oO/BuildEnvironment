@@ -64,11 +64,13 @@ jobs:
 
       - name: Build and push Docker images
         run: |
+          LOWER_GITHUB_USER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           for tag in $BUILD_IMAGES; do
             docker_dir="docker/$tag"
 
             docker_hub_image="${{ env.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY_NAME }}:${tag}"
-            ghcr_image="${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/$(echo "${{ env.GHCR_REPOSITORY_NAME }}" | tr '[:upper:]' '[:lower:]'):${tag}"
+            ghcr_image="${{ env.GHCR_REGISTRY }}/${LOWER_GITHUB_USER}/$(echo "${{ env.GHCR_REPOSITORY_NAME }}" | tr '[:upper:]' '[:lower:]'):${tag}"
 
             echo "Building and pushing: $docker_hub_image and $ghcr_image"
 
@@ -81,4 +83,3 @@ jobs:
               --cache-to "type=gha,mode=max" \
               .
           done
-
